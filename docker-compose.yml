@@ -1,0 +1,9 @@
+version: "3"
+services:
+  database:
+    container_name: database
+    #Postgres v15.2-alpine3.17
+    image: postgres@sha256:53a02ecbe9d18ff6476e6651c34811da39f054424c725fc15d2b480fc3fab877
+    ports:
+      - 5432:5432
+    env_file: .env

@@ -1,0 +1,18 @@
+.button {
+  background: #ececec;
+  border: 0;
+  border-radius: 0.125rem;
+  padding: 1rem 2rem;
+}
+
+.button + .button {
+  margin-left: 1rem;
+}
+
+.center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-right: -50%;
+  transform: translate(-50%, -50%);
+}

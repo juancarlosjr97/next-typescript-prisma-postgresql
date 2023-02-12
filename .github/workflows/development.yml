@@ -1,0 +1,14 @@
+---
+name: Development
+on:
+  push:
+    branches:
+      - "*"
+
+jobs:
+  install-dependencies:
+    uses: ./.github/workflows/install-dependencies.yml
+
+  tests:
+    needs: install-dependencies
+    uses: ./.github/workflows/tests.yml

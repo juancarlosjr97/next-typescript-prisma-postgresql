@@ -1,0 +1,109 @@
+---
+name: Tests
+on:
+  workflow_call:
+
+jobs:
+  tests:
+    name: Tests Workflow
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        node-version: [18.12.1]
+
+    steps:
+      - name: Checkout Code 🛎️
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Use Node.js Caching ${{ matrix.node-version }}
+        id: node-cache
+        uses: actions/cache@v3
+        with:
+          path: node_modules
+          key: node-modules-${{ hashFiles('package-lock.json') }}
+
+      - name: Install Dependencies
+        if: steps.node-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Setup test environmental variables
+        run: |
+          cp .env-local .env
+
+      - name: Start docker container
+        run: npm run docker:ci
+
+      - name: Build and start web app in the background
+        run: npm run build:start
+        env:
+          ENVIRONMENT: ci
+          NODE_ENV: ci
+
+      - name: Sleep 30 seconds
+        run: sleep 30
+
+      - name: Run prisma db migrations
+        run: npm run prisma:deploy
+
+      - name: Run jest unit tests
+        run: npm run test:jest:ci
+
+      - name: Upload coverage jest
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: jest-coverage
+          path: coverage
+          retention-days: 7
+
+      - name: Install Cypress
+        run: npx cypress install
+
+      - name: Run Cypress E2E tests
+        uses: cypress-io/github-action@v5
+        with:
+          install: false
+          browser: chrome
+          headed: true
+          wait-on: http://localhost:3000
+
+      - name: Video Cypress
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: videos-cypress
+          path: cypress/videos
+          retention-days: 7
+
+      - name: Screenshots Cypress
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: screenshots-cypress
+          path: cypress/screenshots
+          retention-days: 7
+
+      - name: Run coverage check
+        run: npm run test:coverage:check
+
+      - name: Coverage
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: merged-coverage
+          path: coverage/merged
+          retention-days: 7
+
+      - name: Exit on failure
+        if: failure()
+        run: |
+          echo "Error running tests job"
+          exit 1
